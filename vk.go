@@ -10,13 +10,20 @@ import (
 
 const api = `https://api.vk.com/method/`
 
+type js struct {
+	Error    vkError         `json:"error"`
+	Response json.RawMessage `json:"response"`
+}
+
+type vkError struct {
+	Code    int    `json:"error_code"`
+	Message string `json:"error_msg"`
+}
+
 type Api struct {
 	Token string
 }
 
-// "method" like "messages.get"
-// All available method see here - https://vk.com/dev/methods
-// "params" - parameters of the selected API method
 func (this Api) Request(method string, params map[string]string) (result json.RawMessage, e error) {
 
 	request := api + method + "?"
@@ -37,19 +44,13 @@ func (this Api) Request(method string, params map[string]string) (result json.Ra
 	}
 
 	var j js
-	json.Unmarshal(result, &j)
+	if e := json.Unmarshal(result, &j); e != nil {
+		return nil, e
+	}
+
 	if j.Error.Code != 0 {
 		return nil, errors.New(fmt.Sprint("vk: ", j.Error.Code, ", \"", j.Error.Message, "\""))
 	}
 
 	return j.Response, nil
-}
-
-type js struct {
-	Error    vkError         `json:"error"`
-	Response json.RawMessage `json:"response"`
-}
-type vkError struct {
-	Code    int    `json:"error_code"`
-	Message string `json:"error_msg"`
 }
